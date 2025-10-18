@@ -17,10 +17,10 @@ def restore(sp: Spotify, quick: bool = False):
     else:
         recent_execution_times = deque(maxlen=10)  # 保存最近10次的执行时间
         min_execution_time = float('inf')
-        max_execution_time = float('inf')
+        max_execution_time = 0
         total_start_time = time()
         for i, song_id in enumerate(ids):
-            print(f"\rRestoring song: {i + 1} of {len(ids)}, Minimum recent 10 execution time: {min_execution_time:.3f}s, Max execution time: {max_execution_time}s", end='', flush=True)
+            print(f"\rRestoring song: {i + 1} of {len(ids)}, Minimum recent 10 execution time: {min_execution_time:.3f}s, Max execution time: {max_execution_time:.3f}s", end='', flush=True)
             start_time = time()
             sp.current_user_saved_tracks_add([song_id])
             execution_time = time() - start_time
