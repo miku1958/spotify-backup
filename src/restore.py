@@ -1,9 +1,11 @@
 from json import load
 from os import listdir
-from time import sleep
+from time import sleep, time
+from spotipy import Spotify
+from collections import deque
 
 
-def restore(sp, quick=False):
+def restore(sp: Spotify, quick: bool = False):
     print(f"Restoring liked songs...")
     liked_songs = load(open("backup/liked-songs.json", "r"))
     ids = [item["id"] for item in reversed(liked_songs)]

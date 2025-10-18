@@ -1,7 +1,8 @@
 from backup import get_followed_artists, get_liked_songs, get_playlists, get_albums
+from spotipy import Spotify
 
 
-def clean_library(sp):
+def clean_library(sp: Spotify) -> None:
     liked_songs = get_liked_songs(sp)
     ids = [item["id"] for item in liked_songs]
     batches = [ids[i : i + 50] for i in range(0, len(ids), 50)]

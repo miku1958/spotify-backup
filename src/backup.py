@@ -7,9 +7,10 @@ from spotipy import Spotify
 from pathlib import Path
 from tabulate import tabulate
 from shutil import rmtree
+from typing import List, Dict, Any, Tuple, Optional
 
 
-def get_useful_info_for_tracks(tracks):
+def get_useful_info_for_tracks(tracks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return [
         {
             "name": item["track"]["name"],
@@ -24,7 +25,7 @@ def get_useful_info_for_tracks(tracks):
     ]
 
 
-def get_useful_info_for_playlists(playlists, owner_id):
+def get_useful_info_for_playlists(playlists: List[Dict[str, Any]], owner_id: str) -> Tuple[List[Dict[str, Any]], List[List[str]]]:
     cleaned = []
     blends = []
 
@@ -65,7 +66,7 @@ def get_useful_info_for_playlists(playlists, owner_id):
     return cleaned, blends
 
 
-def get_useful_info_for_albums(albums):
+def get_useful_info_for_albums(albums: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return [
         {
             "name": album["album"]["name"],
@@ -78,7 +79,7 @@ def get_useful_info_for_albums(albums):
     ]
 
 
-def get_useful_info_for_followed(artists):
+def get_useful_info_for_followed(artists: List[Dict[str, Any]]) -> List[Dict[str, str]]:
     return [
         {
             "name": artist["name"],
@@ -88,7 +89,7 @@ def get_useful_info_for_followed(artists):
     ]
 
 
-def get_all_items(sp: Spotify, results, key=None):
+def get_all_items(sp: Spotify, results: Dict[str, Any], key: Optional[str] = None) -> List[Any]:
     items = results["items"]
 
     while results["next"]:
@@ -149,7 +150,7 @@ def get_playlist_tracks(sp: Spotify, playlist):
     return get_useful_info_for_tracks(items)
 
 
-def slugify(value):
+def slugify(value: Any) -> str:
     value = (
         unicodedata.normalize("NFKD", str(value))
         .encode("ascii", "ignore")
@@ -159,11 +160,11 @@ def slugify(value):
     return re.sub(r"[-\s]+", "-", value).strip("-_")
 
 
-def write(data, path):
+def write(data: Any, path: str) -> None:
     dump(data, open(path, "w"), indent="\t")
 
 
-def backup(sp: Spotify, playlist_name=None):
+def backup(sp: Spotify, playlist_name: Optional[str] = None) -> None:
     print("Backing up... This might take a while")
 
     backup = Path("backup")

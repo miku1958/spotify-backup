@@ -2,6 +2,7 @@ from json import load
 from io import BytesIO
 from pathlib import Path
 from statistics import mean, median, mode, variance, stdev
+from typing import Optional
 
 from pygal import Pie
 from svglib.svglib import svg2rlg
@@ -9,7 +10,7 @@ from reportlab.graphics import renderPM
 from backup import slugify
 
 
-def analyze(file_path):
+def analyze(file_path: str) -> None:
     raw_data = load(open(file_path, "r"))
     name = raw_data["name"] if "tracks" in raw_data else "Liked Songs"
     if "tracks" in raw_data:
