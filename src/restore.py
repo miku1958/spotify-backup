@@ -15,10 +15,24 @@ def restore(sp: Spotify, quick: bool = False):
         for batch in batches:
             sp.current_user_saved_tracks_add(batch)
     else:
+        recent_execution_times = deque(maxlen=10)  # 保存最近10次的执行时间
+        min_execution_time = float('inf')
+        max_execution_time = float('inf')
+        total_start_time = time()
         for i, song_id in enumerate(ids):
-            print(f"Restoring song: {i + 1} of {len(ids)}")
+            print(f"\rRestoring song: {i + 1} of {len(ids)}, Minimum recent 10 execution time: {min_execution_time:.3f}s, Max execution time: {max_execution_time}s", end='', flush=True)
+            start_time = time()
             sp.current_user_saved_tracks_add([song_id])
-            sleep(1)
+            execution_time = time() - start_time
+            recent_execution_times.append(execution_time)
+            min_execution_time = min(recent_execution_times)
+            max_execution_time = max(max_execution_time, execution_time)
+            if i < len(ids) - 1:
+                sleep_time = max(0, 1 - min_execution_time)
+                if sleep_time > 0:
+                    sleep(sleep_time)
+        total_time = time() - total_start_time
+        print(f"\nTotal time: {total_time:.2f}s ({total_time/60:.2f}min)")
 
     print(f"Restoring playlists...")
     playlists = (
