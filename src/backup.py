@@ -171,18 +171,6 @@ def backup(sp: Spotify, playlist_name: Optional[str] = None) -> None:
     backup.mkdir(parents=True, exist_ok=True)
 
     if not playlist_name:
-        git_status = subprocess.run(
-            ["git", "status", "--porcelain"], cwd=backup, capture_output=True, text=True
-        )
-
-        if git_status.returncode != 0:
-            subprocess.run(["git", "init"], cwd=backup).check_returncode()
-
-        if git_status.stdout:
-            print("You have uncommitted changes in backup/, exiting")
-            exit(1)
-
-        subprocess.run(["git", "pull"], cwd=backup).check_returncode()
 
         rmtree("backup/playlists", ignore_errors=True)
         Path("backup/liked-songs.json").unlink(missing_ok=True)
@@ -223,16 +211,6 @@ def backup(sp: Spotify, playlist_name: Optional[str] = None) -> None:
         write(blends, "backup/blend-names.json")
 
         print("Commiting and pushing changes...")
-
-        subprocess.run(["git", "add", "."], cwd=backup).check_returncode()
-
-        subprocess.run(
-            "git diff-index --quiet HEAD || git commit -m 'Automated update'",
-            cwd=backup,
-            shell=True,
-        ).check_returncode()
-
-        subprocess.run(["git", "push"], cwd=backup)
 
         print("Backup complete!")
         print("* Your liked songs were backed up")
