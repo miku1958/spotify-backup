@@ -9,8 +9,8 @@ from restore import restore
 from analyze import analyze
 from save_profile import save_profile
 
-client_id = "d93f79db5bbb41999a52734b9c95585a"
-redirect_uri = "http://localhost:3000/authed"
+client_id = "23fdcace6f3d46ce985f725902d8e38a"
+redirect_uri = "http://127.0.0.1:3000/authed"
 scope = " ".join(
     [
         "user-library-read",
@@ -45,11 +45,18 @@ parser.add_argument("--playlist")
 parser.add_argument("--file")
 args = parser.parse_args()
 
-choice = (
-    "y"
-    if args.backup or args.file or args.profile
-    else input(f"Logged in as {sp.me()['display_name']}. Continue? [y/n/logout] ")
-)
+if args.backup or args.file or args.profile:
+    choice = "y"
+else:
+    try:
+        user_info = sp.me()
+        display_name = user_info["display_name"]
+        prompt = f"Logged in as {display_name}. Continue? [y/n/logout] "
+    except Exception as e:
+        print(f"\nAuthorization error: {e}")
+        print("Hint: If you are seeing a 403 error, ensure your email is added to the App in the Spotify Developer Dashboard.")
+        prompt = "Continue? [y/n/logout] "
+    choice = input(prompt)
 
 if choice == "y":
     pass
