@@ -164,36 +164,36 @@ def write(data: Any, path: str) -> None:
     dump(data, open(path, "w"), indent="\t")
 
 
-def backup(sp: Spotify, playlist_name: Optional[str] = None) -> None:
+def backup(sp: Spotify, playlist_name: Optional[str] = None, root_path: str = "backup") -> None:
     print("Backing up... This might take a while")
 
-    backup = Path("backup")
-    backup.mkdir(parents=True, exist_ok=True)
+    backup_dir = Path(root_path)
+    backup_dir.mkdir(parents=True, exist_ok=True)
 
     if not playlist_name:
 
-        rmtree("backup/playlists", ignore_errors=True)
-        Path("backup/liked-songs.json").unlink(missing_ok=True)
-        Path("backup/saved-albums.json").unlink(missing_ok=True)
-        Path("backup/followed-artists.json").unlink(missing_ok=True)
-        Path("backup/blend-names.json").unlink(missing_ok=True)
+        rmtree(f"{root_path}/playlists", ignore_errors=True)
+        Path(f"{root_path}/liked-songs.json").unlink(missing_ok=True)
+        Path(f"{root_path}/saved-albums.json").unlink(missing_ok=True)
+        Path(f"{root_path}/followed-artists.json").unlink(missing_ok=True)
+        Path(f"{root_path}/blend-names.json").unlink(missing_ok=True)
 
-    Path("backup/playlists/owned").mkdir(parents=True, exist_ok=True)
-    Path("backup/playlists/collaborative").mkdir(parents=True, exist_ok=True)
-    Path("backup/playlists/followed").mkdir(parents=True, exist_ok=True)
+    Path(f"{root_path}/playlists/owned").mkdir(parents=True, exist_ok=True)
+    Path(f"{root_path}/playlists/collaborative").mkdir(parents=True, exist_ok=True)
+    Path(f"{root_path}/playlists/followed").mkdir(parents=True, exist_ok=True)
 
     if not playlist_name:
         print("Backing up liked songs...")
         songs = get_liked_songs(sp)
-        write(songs, "backup/liked-songs.json")
+        write(songs, f"{root_path}/liked-songs.json")
 
         print("Backing up albums...")
         albums = get_albums(sp)
-        write(albums, "backup/saved-albums.json")
+        write(albums, f"{root_path}/saved-albums.json")
 
         print("Backing up followed artists...")
         followed = get_followed_artists(sp)
-        write(followed, "backup/followed-artists.json")
+        write(followed, f"{root_path}/followed-artists.json")
 
     print("Backing up playlists...")
     playlists, blends = get_playlists(sp)
@@ -204,11 +204,11 @@ def backup(sp: Spotify, playlist_name: Optional[str] = None) -> None:
         playlist["tracks"] = get_playlist_tracks(sp, playlist)
         write(
             playlist,
-            f"backup/playlists/{playlist['type']}/{slugify(playlist['name'])}-{slugify(playlist['id'])}.json",
+            f"{root_path}/playlists/{playlist['type']}/{slugify(playlist['name'])}-{slugify(playlist['id'])}.json",
         )
 
     if not playlist_name:
-        write(blends, "backup/blend-names.json")
+        write(blends, f"{root_path}/blend-names.json")
 
         print("Commiting and pushing changes...")
 

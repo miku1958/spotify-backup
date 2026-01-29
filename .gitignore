@@ -3,6 +3,8 @@ __pycache__
 
 # Credentials
 .cache
+.token*
+.tokens/
 
 # Backup
 backup

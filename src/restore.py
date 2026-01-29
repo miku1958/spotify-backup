@@ -5,9 +5,9 @@ from spotipy import Spotify
 from collections import deque
 
 
-def restore(sp: Spotify, quick: bool = False):
+def restore(sp: Spotify, quick: bool = False, root_path: str = "backup"):
     print(f"Restoring liked songs...")
-    liked_songs = load(open("backup/liked-songs.json", "r"))
+    liked_songs = load(open(f"{root_path}/liked-songs.json", "r"))
     ids = [item["id"] for item in reversed(liked_songs)]
 
     if quick:
@@ -37,16 +37,16 @@ def restore(sp: Spotify, quick: bool = False):
     print(f"Restoring playlists...")
     playlists = (
         [
-            load(open(f"backup/playlists/owned/{playlist}", "r"))
-            for playlist in listdir("backup/playlists/owned")
+            load(open(f"{root_path}/playlists/owned/{playlist}", "r"))
+            for playlist in listdir(f"{root_path}/playlists/owned")
         ]
         + [
-            load(open(f"backup/playlists/collaborative/{playlist}", "r"))
-            for playlist in listdir("backup/playlists/collaborative")
+            load(open(f"{root_path}/playlists/collaborative/{playlist}", "r"))
+            for playlist in listdir(f"{root_path}/playlists/collaborative")
         ]
         + [
-            load(open(f"backup/playlists/followed/{playlist}", "r"))
-            for playlist in listdir("backup/playlists/followed")
+            load(open(f"{root_path}/playlists/followed/{playlist}", "r"))
+            for playlist in listdir(f"{root_path}/playlists/followed")
         ]
     )
 

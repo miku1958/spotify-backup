@@ -1,4 +1,5 @@
 import os
+import time
 import spotipy
 import argparse
 
@@ -24,10 +25,77 @@ scope = " ".join(
     ]
 )
 
+parser = argparse.ArgumentParser(description="Backup and restore spotify library")
+parser.add_argument("--backup", action="store_true")
+parser.add_argument("--profile")
+parser.add_argument("--playlist")
+parser.add_argument("--file")
+args = parser.parse_args()
+
+import json
+
+TOKEN_DIR = ".tokens"
+if not os.path.exists(TOKEN_DIR):
+    os.makedirs(TOKEN_DIR)
+
+token_path = None
+if args.profile:
+    token_path = os.path.join(TOKEN_DIR, args.profile)
+
+if not token_path and not (args.backup or args.file):
+    # Interactive selection
+    tokens = [f for f in os.listdir(TOKEN_DIR) if not f.startswith(".")]
+    
+    if not tokens:
+        print("No tokens found. Starting new login.")
+        token_path = os.path.join(TOKEN_DIR, ".temp_token")
+    else:
+        print("Select an account:")
+        for i, t in enumerate(tokens):
+            print(f"{i + 1}. {t}")
+        print(f"{len(tokens) + 1}. New Login")
+        
+        try:
+            selection = input("Selection: ")
+            if not selection:
+                quit()
+            selection = int(selection)
+            if 1 <= selection <= len(tokens):
+                token_path = os.path.join(TOKEN_DIR, tokens[selection - 1])
+            elif selection == len(tokens) + 1:
+                token_path = os.path.join(TOKEN_DIR, ".temp_token")
+            else:
+                quit()
+        except ValueError:
+            quit()
+elif not token_path:
+    # Automated but no profile specified, try logical default
+    tokens = [f for f in os.listdir(TOKEN_DIR) if not f.startswith(".")]
+    if len(tokens) == 1:
+        token_path = os.path.join(TOKEN_DIR, tokens[0])
+    elif not tokens:
+        token_path = os.path.join(TOKEN_DIR, ".temp_token")
+    else:
+        print("Error: Multiple profiles found. Please specify --profile <email>")
+        quit()
+
+if os.path.exists(token_path):
+    try:
+        with open(token_path, 'r') as f:
+            token_data = json.load(f)
+            if token_data.get('expires_at') and token_data['expires_at'] < time.time():
+                print(f"Token for {os.path.basename(token_path)} expired. re-authenticating...")
+                # We can't easily force re-auth without clearing, but Spotipy might auto-refresh.
+                # If explicitly expired and user wants browser, we could os.remove(token_path).
+                # But let's try standard flow first.
+    except Exception:
+        pass
+
 auth_manager = SpotifyPKCE(
     scope=scope,
     client_id=client_id,
     redirect_uri=redirect_uri,
+    cache_path=token_path,
 )
 
 if not auth_manager.validate_token(auth_manager.get_cached_token()):
@@ -38,33 +106,74 @@ if not auth_manager.validate_token(auth_manager.get_cached_token()):
 
 sp = spotipy.Spotify(auth_manager=auth_manager)
 
-parser = argparse.ArgumentParser(description="Backup and restore spotify library")
-parser.add_argument("--backup", action="store_true")
-parser.add_argument("--profile")
-parser.add_argument("--playlist")
-parser.add_argument("--file")
-args = parser.parse_args()
-
-if args.backup or args.file or args.profile:
-    choice = "y"
-else:
+if os.path.basename(token_path) == ".temp_token":
     try:
         user_info = sp.me()
-        display_name = user_info["display_name"]
-        prompt = f"Logged in as {display_name}. Continue? [y/n/logout] "
+        user_id = user_info['uri'].split(':')[-1]
+        display_name = user_info['display_name']
+        # Sanitize display_name for filename
+        safe_display_name = "".join(c for c in display_name if c.isalnum() or c in (' ', '-', '_')).strip()
+        new_filename = f"{safe_display_name}-{user_id}"
+        
+        new_path = os.path.join(TOKEN_DIR, new_filename)
+        if os.path.exists(token_path):
+             # Save current token to new path
+             # spotipy saves to token_path (temp)
+             # We rename temp to new
+             if os.path.exists(new_path):
+                 os.remove(new_path)
+             os.rename(token_path, new_path)
+             token_path = new_path
+             print(f"Token saved as {new_filename}")
     except Exception as e:
-        print(f"\nAuthorization error: {e}")
-        print("Hint: If you are seeing a 403 error, ensure your email is added to the App in the Spotify Developer Dashboard.")
-        prompt = "Continue? [y/n/logout] "
-    choice = input(prompt)
+        print(f"Warning: Could not rename token file: {e}")
 
-if choice == "y":
-    pass
-elif choice == "logout":
-    os.remove(".cache")
-    quit()
-else:
-    quit()
+def get_backup_path(sp):
+    user_info = sp.me()
+    user_id = user_info['uri'].split(':')[-1]
+    display_name = user_info['display_name']
+    safe_display_name = "".join(c for c in display_name if c.isalnum() or c in (' ', '-', '_')).strip()
+    return os.path.join("backup", f"{safe_display_name}-{user_id}")
+
+
+def select_backup_source():
+    root = "backup"
+    if not os.path.exists(root):
+        print("Backup directory not found.")
+        return None
+        
+    options = []
+    
+    # Check root itself (Legacy support)
+    if os.path.exists(os.path.join(root, "liked-songs.json")):
+        options.append(("Root (Legacy)", root))
+        
+    # Check subfolders
+    for d in sorted(os.listdir(root)):
+        path = os.path.join(root, d)
+        if os.path.isdir(path) and not d.startswith("."):
+            if os.path.exists(os.path.join(path, "liked-songs.json")):
+                options.append((d, path))
+    
+    if not options:
+        print("No valid backups found (looking for liked-songs.json).")
+        return None
+
+    print("\nSelect backup to restore:")
+    for i, (name, path) in enumerate(options):
+        print(f"{i + 1}. {name}")
+        
+    try:
+        selection = input("Selection: ")
+        if not selection:
+            return None
+        index = int(selection) - 1
+        if 0 <= index < len(options):
+            return options[index][1]
+    except ValueError:
+        pass
+    print("Invalid selection")
+    return None
 
 
 choice = (
@@ -90,14 +199,19 @@ Note that while quick restore loses order for liked songs, playlists are always 
 )
 
 if choice == "1":
+    backup_root = get_backup_path(sp)
     if args.playlist:
-        backup(sp, playlist_name=args.playlist)
+        backup(sp, playlist_name=args.playlist, root_path=backup_root)
     else:
-        backup(sp)
+        backup(sp, root_path=backup_root)
 elif choice == "2":
-    restore(sp, True)
+    backup_root = select_backup_source()
+    if backup_root:
+        restore(sp, True, root_path=backup_root)
 elif choice == "3":
-    restore(sp, False)
+    backup_root = select_backup_source()
+    if backup_root:
+        restore(sp, False, root_path=backup_root)
 elif choice == "4":
     confirm = input(
         f"[{sp.me()['display_name'].upper()}] This will delete everything in your library, including liked songs, playlists, albums and followed artists. Are you sure you want to continue? [y/n] "
