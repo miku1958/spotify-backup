@@ -49,6 +49,8 @@ if not token_path and not (args.backup or args.file):
     if not tokens:
         print("No tokens found. Starting new login.")
         token_path = os.path.join(TOKEN_DIR, ".temp_token")
+        if os.path.exists(token_path):
+            os.remove(token_path)
     else:
         print("Select an account:")
         for i, t in enumerate(tokens):
@@ -64,6 +66,8 @@ if not token_path and not (args.backup or args.file):
                 token_path = os.path.join(TOKEN_DIR, tokens[selection - 1])
             elif selection == len(tokens) + 1:
                 token_path = os.path.join(TOKEN_DIR, ".temp_token")
+                if os.path.exists(token_path):
+                    os.remove(token_path)
             else:
                 quit()
         except ValueError:
@@ -85,9 +89,8 @@ if os.path.exists(token_path):
             token_data = json.load(f)
             if token_data.get('expires_at') and token_data['expires_at'] < time.time():
                 print(f"Token for {os.path.basename(token_path)} expired. re-authenticating...")
-                # We can't easily force re-auth without clearing, but Spotipy might auto-refresh.
-                # If explicitly expired and user wants browser, we could os.remove(token_path).
-                # But let's try standard flow first.
+                f.close()
+                os.remove(token_path)
     except Exception:
         pass
 
@@ -99,10 +102,9 @@ auth_manager = SpotifyPKCE(
 )
 
 if not auth_manager.validate_token(auth_manager.get_cached_token()):
-    print(
-        "If your browser doesn't open automatically, open",
-        auth_manager.get_authorize_url(),
-    )
+    # if token is invalid or expired (and refresh failed), we need to authorize again
+    # getting access token will trigger the auth flow (open browser etc)
+    auth_manager.get_access_token()
 
 sp = spotipy.Spotify(auth_manager=auth_manager)
 
