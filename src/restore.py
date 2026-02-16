@@ -5,34 +5,35 @@ from spotipy import Spotify
 from collections import deque
 
 
-def restore(sp: Spotify, quick: bool = False, root_path: str = "backup"):
-    print(f"Restoring liked songs...")
-    liked_songs = load(open(f"{root_path}/liked-songs.json", "r"))
-    ids = [item["id"] for item in reversed(liked_songs)]
+def restore(sp: Spotify, quick: bool = False, root_path: str = "backup", skip_liked: bool = False):
+    if not skip_liked:
+        print(f"Restoring liked songs...")
+        liked_songs = load(open(f"{root_path}/liked-songs.json", "r"))
+        ids = [item["id"] for item in reversed(liked_songs) if item.get("id")]
 
-    if quick:
-        batches = [ids[i : i + 50] for i in range(0, len(ids), 50)]
-        for batch in batches:
-            sp.current_user_saved_tracks_add(batch)
-    else:
-        recent_execution_times = deque(maxlen=10)  # 保存最近10次的执行时间
-        min_execution_time = float('inf')
-        max_execution_time = 0
-        total_start_time = time()
-        for i, song_id in enumerate(ids):
-            print(f"\rRestoring song: {i + 1} of {len(ids)}, Minimum recent 10 execution time: {min_execution_time:.3f}s, Max execution time: {max_execution_time:.3f}s", end='', flush=True)
-            start_time = time()
-            sp.current_user_saved_tracks_add([song_id])
-            execution_time = time() - start_time
-            recent_execution_times.append(execution_time)
-            min_execution_time = min(recent_execution_times)
-            max_execution_time = max(max_execution_time, execution_time)
-            if i < len(ids) - 1:
-                sleep_time = max(0, 1 - min_execution_time)
-                if sleep_time > 0:
-                    sleep(sleep_time)
-        total_time = time() - total_start_time
-        print(f"\nTotal time: {total_time:.2f}s ({total_time/60:.2f}min)")
+        if quick:
+            batches = [ids[i : i + 50] for i in range(0, len(ids), 50)]
+            for batch in batches:
+                sp.current_user_saved_tracks_add(batch)
+        else:
+            recent_execution_times = deque(maxlen=10)  # 保存最近10次的执行时间
+            min_execution_time = float('inf')
+            max_execution_time = 0
+            total_start_time = time()
+            for i, song_id in enumerate(ids):
+                print(f"\rRestoring song: {i + 1} of {len(ids)}, Minimum recent 10 execution time: {min_execution_time:.3f}s, Max execution time: {max_execution_time:.3f}s", end='', flush=True)
+                start_time = time()
+                sp.current_user_saved_tracks_add([song_id])
+                execution_time = time() - start_time
+                recent_execution_times.append(execution_time)
+                min_execution_time = min(recent_execution_times)
+                max_execution_time = max(max_execution_time, execution_time)
+                if i < len(ids) - 1:
+                    sleep_time = max(0, 1 - min_execution_time)
+                    if sleep_time > 0:
+                        sleep(sleep_time)
+            total_time = time() - total_start_time
+            print(f"\nTotal time: {total_time:.2f}s ({total_time/60:.2f}min)")
 
     print(f"Restoring playlists...")
     playlists = (
@@ -67,25 +68,25 @@ def restore(sp: Spotify, quick: bool = False, root_path: str = "backup"):
                 description=playlist["description"],
             )
 
-            ids = [track["id"] for track in playlist["tracks"]]
+            ids = [track["id"] for track in playlist["tracks"] if track.get("id")]
             batches = [ids[i : i + 50] for i in range(0, len(ids), 50)]
 
             for batch in batches:
                 sp.user_playlist_add_tracks(user_id, new_playlist["id"], batch)
 
     print(f"Restoring saved albums...")
-    saved_albums = load(open("backup/saved-albums.json", "r"))
+    saved_albums = load(open(f"{root_path}/saved-albums.json", "r"))
 
-    ids = [item["id"] for item in saved_albums]
+    ids = [item["id"] for item in saved_albums if item.get("id")]
     batches = [ids[i : i + 50] for i in range(0, len(ids), 50)]
 
     for batch in batches:
         sp.current_user_saved_albums_add(batch)
 
     print(f"Restoring artists...")
-    followed = load(open("backup/followed-artists.json", "r"))
+    followed = load(open(f"{root_path}/followed-artists.json", "r"))
 
-    ids = [item["id"] for item in followed]
+    ids = [item["id"] for item in followed if item.get("id")]
     batches = [ids[i : i + 50] for i in range(0, len(ids), 50)]
 
     for batch in batches:

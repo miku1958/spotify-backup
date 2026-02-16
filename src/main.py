@@ -209,11 +209,13 @@ if choice == "1":
 elif choice == "2":
     backup_root = select_backup_source()
     if backup_root:
-        restore(sp, True, root_path=backup_root)
+        skip = input("Skip restoring liked songs? (y/n) ").lower() == "y"
+        restore(sp, True, root_path=backup_root, skip_liked=skip)
 elif choice == "3":
     backup_root = select_backup_source()
     if backup_root:
-        restore(sp, False, root_path=backup_root)
+        skip = input("Skip restoring liked songs? (y/n) ").lower() == "y"
+        restore(sp, False, root_path=backup_root, skip_liked=skip)
 elif choice == "4":
     confirm = input(
         f"[{sp.me()['display_name'].upper()}] This will delete everything in your library, including liked songs, playlists, albums and followed artists. Are you sure you want to continue? [y/n] "
