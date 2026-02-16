@@ -110,23 +110,23 @@ sp = spotipy.Spotify(auth_manager=auth_manager)
 
 if os.path.basename(token_path) == ".temp_token":
     try:
-        user_info = sp.me()
-        user_id = user_info['uri'].split(':')[-1]
-        display_name = user_info['display_name']
-        # Sanitize display_name for filename
-        safe_display_name = "".join(c for c in display_name if c.isalnum() or c in (' ', '-', '_')).strip()
-        new_filename = f"{safe_display_name}-{user_id}"
-        
-        new_path = os.path.join(TOKEN_DIR, new_filename)
-        if os.path.exists(token_path):
-             # Save current token to new path
-             # spotipy saves to token_path (temp)
-             # We rename temp to new
-             if os.path.exists(new_path):
-                 os.remove(new_path)
-             os.rename(token_path, new_path)
-             token_path = new_path
-             print(f"Token saved as {new_filename}")
+        new_filename = input("Please enter your email to save the token: ").strip()
+        if not new_filename:
+            print("No email provided. Token will remain as .temp_token and might be overwritten.")
+        else:
+            # Sanitize filename
+            new_filename = "".join(c for c in new_filename if c.isalnum() or c in (' ', '-', '_', '@', '.')).strip()
+            
+            new_path = os.path.join(TOKEN_DIR, new_filename)
+            if os.path.exists(token_path):
+                 # Save current token to new path
+                 # spotipy saves to token_path (temp)
+                 # We rename temp to new
+                 if os.path.exists(new_path):
+                     os.remove(new_path)
+                 os.rename(token_path, new_path)
+                 token_path = new_path
+                 print(f"Token saved as {new_filename}")
     except Exception as e:
         print(f"Warning: Could not rename token file: {e}")
 
